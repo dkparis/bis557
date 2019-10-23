@@ -1,0 +1,211 @@
+---
+title: "Homework2 Problem 1, 4, 5"
+author: "Claire Dong"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+##Problem 1
+
+$$
+\\\hat\beta=(X^{T}X)^{-1}X^{T}Y
+
+\\X^{T}X=
+
+\begin{bmatrix} 
+1&1&...&1 \\
+x_{1} & x^{2}&...&x_{n}
+\end{bmatrix}
+\begin{bmatrix} 
+1&x_{1} \\
+1&x_{2} \\
+. &. \\
+. &.\\
+.&.\\
+1&x_{n} 
+\end{bmatrix}
+=
+\begin{bmatrix} 
+n & n\bar x \\
+n\bar x & \sum^{n}_{i=1}x_{i}^{2}
+\end{bmatrix}
+$$
+
+The inverse matrix is
+
+$$
+\\(X^{T}X)^{-1}= \frac{1}{n(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\begin{bmatrix} 
+\sum^{n}_{i=1}x_{i}^{2} & -n\bar x \\
+-n\bar x  & n
+\end{bmatrix}
+
+\\ X^{T}Y=\begin{bmatrix} 
+n\bar y  \\
+\sum^{n}_{i=1}x_{i}y_{i}
+\end{bmatrix}
+$$
+
+$$
+\hat\beta=(X^{T}X)^{-1}X^{T}Y=\frac{1}{n(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\begin{bmatrix} 
+\sum^{n}_{i=1}x_{i}^{2} & -n\bar x \\
+-n\bar x  & n
+\end{bmatrix}
+\begin{bmatrix} 
+n\bar y  \\
+\sum^{n}_{i=1}x_{i}y_{i}
+\end{bmatrix}
+\\=\frac{1}{n(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\begin{bmatrix} 
+n\bar y\sum^{n}_{i=1}x_{i}^{2} -n\bar x \sum^{n}_{i=1}x_{i}y_{i}\\
+-n\bar x n\bar y + n\sum^{n}_{i=1}x_{i}y_{i}
+\end{bmatrix}
+\\=\frac{1}{(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\begin{bmatrix} 
+\bar y\sum^{n}_{i=1}x_{i}^{2} -\bar x \sum^{n}_{i=1}x_{i}y_{i}\\
+-n\bar x \bar y + \sum^{n}_{i=1}x_{i}y_{i}
+\end{bmatrix}
+\\=\frac{1}{(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\begin{bmatrix} 
+\bar y(\sum^{n}_{i=1}x_{i}^{2} -\bar x^{2})-\bar x( \sum^{n}_{i=1}x_{i}y_{i}-\bar x\bar y)\\
+\sum^{n}_{i=1}(x_{i}-\bar x)(y_{i}-\bar y)
+\end{bmatrix}
+\\=\begin{bmatrix} 
+\bar y -\frac{\sum^{n}_{i=1}(x_{i}-\bar x)(y_{i}-\bar y)}{(\sum^{n}_{i=1}x_{i}-\bar x)^{2}} \bar x
+\\ \frac{\sum^{n}_{i=1}(x_{i}-\bar x)(y_{i}-\bar y)}{(\sum^{n}_{i=1}x_{i}-\bar x)^{2}}
+\end{bmatrix}
+$$
+
+
+##Problem 4
+
+```{r}
+# The code below used code from the book 'A computational approach to statistical learning' as reference
+# Scenario 1: X matrix is stable 
+# X matrix is randomly sampled normal variables
+n <- 1000; p <- 25
+X <- matrix(rnorm(n * p), ncol = p)
+# Vector beta has the first coordinate equal to 1, the other 24 coordinates are zeros
+beta <- c(1, rep(0, p - 1))
+# Calculate condition number of matrix X
+svals <- svd(X)$d
+max(svals) / min(svals)
+
+# Calculate MSE of the ordinary least squares estimate
+N <- 1e4; l2_errors <- rep(0, N)
+casl_ols_svd <- function(X, y){
+svd_output <- svd(X)
+r <- sum(svd_output$d > .Machine$double.eps)
+U <- svd_output$u[, 1:r]
+V <- svd_output$v[, 1:r]
+beta <- V %*% (t(U) %*% y / svd_output$d[1:r])
+beta
+}
+for (k in 1:N) {
+y <- X %*% beta + rnorm(n)
+betahat <- casl_ols_svd(X, y)
+l2_errors[k] <- sqrt(sum((betahat - beta)^2))
+}
+mean(l2_errors)
+```
+
+```{r}
+# Apply ridge regression on scenario 1 and let regularization parameter lambda = 0.1
+lambda=0.1
+# Scenario 1: X matrix is not stable 
+# Calculate condition number of matrix X
+svals <- svd(crossprod(X)+diag(rep(lambda, ncol(X))))$d
+max(svals) / min(svals)
+
+N <- 1e4; l2_errors <- rep(0, N)
+casl_ols_svd <- function(X, y){
+svd_output <- svd(X)
+r <- sum(svd_output$d > .Machine$double.eps)
+U <- svd_output$u[, 1:r]
+V <- svd_output$v[, 1:r]
+beta <- V %*% (t(U) %*% y / svd_output$d[1:r])
+beta
+}
+for (k in 1:N) {
+y <- X %*% beta + rnorm(n)
+betahat <- casl_ols_svd(X, y)
+l2_errors[k] <- sqrt(sum((betahat - beta)^2))
+}
+mean(l2_errors)
+```
+
+
+```{r}
+# Scenario 2: X matrix is not stable 
+# Replace the first column of X with a linear combination of the original first column and the second column
+# condition number for the matrix XtX
+alpha <- 0.001
+X[,1] <- X[,1] * alpha + X[,2] * (1 - alpha)
+svals <- svd(X)$d
+max(svals) / min(svals)
+# Calculate MSE of the ordinary least squares estimate
+N <- 1e4
+l2_errors <- rep(0, N)
+for (k in 1:N) {
+y <- X %*% beta + rnorm(n)
+betahat <- solve(crossprod(X), crossprod(X, y))
+l2_errors[k] <- sqrt(sum((betahat - beta)^2))
+}
+mean(l2_errors)
+```
+
+```{r}
+# Scenario 2: X matrix is not stable 
+# condition number for the matrix XtX
+alpha <- 0.001
+X[,1] <- X[,1] * alpha + X[,2] * (1 - alpha)
+svals <- svd(crossprod(X)+diag(rep(lambda, ncol(X))))$d
+max(svals) / min(svals)
+# Calculate MSE of the ordinary least squares estimate
+for (k in 1:N) {
+y <- X %*% beta + rnorm(n) 
+betahat <- solve(crossprod(X) + diag(rep(lambda, ncol(X))) ) %*% t(X) %*% y
+l2_errors[k] <- sqrt(sum((betahat - beta)^2))
+}
+mean(l2_errors)
+```
+
+Since the condition number of X does serve as an indicator of the statistical error in estimating $\hat\beta$, the scenario 1 and 2 show that as numerical stability decreases, the statistical error increases. After using ridge regression can increase numerical stability and decrease statistical error.
+
+##Problem 5
+
+To minimize 
+$$
+\frac {1}{2n}||Y-X\beta||^{2}_{2}+\lambda |\beta_{1}|
+$$
+
+We have:
+$$
+\\ -\frac {1}{n}X^{T}(Y-X\hat \beta)+\lambda sign(\hat \beta)=0
+\\ \frac{1}{n}X^{T}(Y-X\hat \beta)=\lambda sign(\hat \beta)
+\\ \frac{1}{n}X^{T}Y-\frac{1}{n}X^{T}X\hat \beta=\lambda sign(\hat \beta)
+
+$$
+
+$$
+\\ \frac{1}{n}X^{T}X=I
+\\ \frac{1}{n}X^{T}Y-\frac{1}{n}X^{T}X\hat \beta=\lambda sign(\hat \beta)
+\\ \frac{1}{n}X^{T}Y-\hat \beta=\lambda sign(\hat \beta)
+\\ \hat\beta=\frac{1}{n}X^{T}Y -\lambda sign(\hat \beta)
+$$
+
+If $|X^{T}_{j}Y| \leq n \lambda$
+
+$$
+\\ \hat\beta=\frac{1}{n}n \lambda -\lambda sign(\hat \beta)
+\\ \hat\beta=\lambda -\lambda sign(\hat \beta)
+\\ \hat\beta=\hat\beta^{LASSO}=0
+$$
+
+
+

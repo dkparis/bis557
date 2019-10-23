@@ -1,0 +1,18 @@
+Package: homework2
+Type: Package
+Title: 
+Version: 0.1.0
+Author: Claire Dong
+Maintainer: The package maintainer <claire.dong@yale.edu>
+Description: The package contains two functions of implementing ridge regression. 
+	The first one implements ridge regression and returns the coefficient of
+	the regression model. The second one finds the optimal regularization 
+	parameter lambda by cross validation, and returns the optimal value of lambda.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
